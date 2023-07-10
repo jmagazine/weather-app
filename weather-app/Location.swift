@@ -48,51 +48,59 @@ struct Properties: Decodable {
 
 
 func getLocations(text: String, completion: @escaping ([Location]?) -> Void){
-    let apiKey = "25905707ef714854ba503000de826d9f"
-    
-    let urlString = "https://api.geoapify.com/v1/geocode/autocomplete?apiKey=\(apiKey)&text=\(text)"
-    
-    guard let url = URL(string: urlString) else{
-        print("Location error: Invalid url")
-        completion(nil)
-        return
-    }
-    
-    let session = URLSession.shared
-    let task = session.dataTask(with: url){(data, resoponse, error) in
-        if let error = error{
-            print("Error: \(error)")
+    if let apiKey = ProcessInfo.processInfo.environment["weathersearchapikey"]{
+        
+        let q = text.split(separator: " ").joined(separator: "-")
+        
+        let urlString = "https://api.geoapify.com/v1/geocode/autocomplete?apiKey=\(apiKey)&text=\(q)"
+        
+        guard let url = URL(string: urlString) else{
+            print("Location error: Invalid url")
             completion(nil)
+            return
         }
         
-        if let data = data{
-            do{
-                
-                let gl = try JSONDecoder().decode(GeoLocation.self, from: data)
-
-                        var locations = []
-                for feature in gl.features{
-                    let location = Location(result_type: feature.properties.result_type,
-                                            suburb: feature.properties.suburb ?? nil,
-                                            city:feature.properties.city ?? nil,
-                                            county: feature.properties.county ?? nil,
-                                            state: feature.properties.state ?? nil,
-                                            country:feature.properties.country,
-                                            lat:feature.properties.lat,
-                                            lon: feature.properties.lon)
-                            locations.append(location)
-                        }
-                        completion(locations as? [Location])
-                        return
-                    
-                
-            } catch {
-                print("Error parsing json: \(error)")
+        let session = URLSession.shared
+        
+        // perform get request
+        let task = session.dataTask(with: url){(data, resoponse, error) in
+            if let error = error{
+                print("Error: \(error)")
                 completion(nil)
-                return
-                
+            }
+            
+            if let data = data{
+                do{
+                    
+                    // parse through data
+                    let gl = try JSONDecoder().decode(GeoLocation.self, from: data)
+                    var locations = []
+                    for feature in gl.features{
+                        // get location
+                        let location = Location(result_type: feature.properties.result_type,
+                                                suburb: feature.properties.suburb ?? nil,
+                                                city:feature.properties.city ?? nil,
+                                                county: feature.properties.county ?? nil,
+                                                state: feature.properties.state ?? nil,
+                                                country:feature.properties.country,
+                                                lat:feature.properties.lat,
+                                                lon: feature.properties.lon)
+                        locations.append(location)
+                    }
+                    completion(locations as? [Location])
+                    return
+                } catch {
+                    print("Error parsing json: \(error)")
+                    completion(nil)
+                    return
+                    
+                }
             }
         }
+        // start call
+        task.resume()
+    }else{
+        print("Could not find api key, aborting...")
+        return
     }
-    task.resume()
 }

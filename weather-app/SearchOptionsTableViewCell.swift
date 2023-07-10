@@ -82,8 +82,10 @@ class searchOptionsTableViewCell: UITableViewCell {
         NSLayoutConstraint.activate([
             nameLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
-            nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),            
         ])
+        
+        
     }
     
     func configure(location: Location){
@@ -100,7 +102,7 @@ class searchOptionsTableViewCell: UITableViewCell {
             }
         
         if let state = location.state {
-            text += (stateNameToCode[state] ?? "") + ", "
+            text += (stateNameToCode[state]) + ", "
         }
         
         text += location.country

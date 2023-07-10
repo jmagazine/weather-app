@@ -9,7 +9,7 @@ import UIKit
 import CoreLocation
 import MapKit
 
-class ViewController: UIViewController, CLLocationManagerDelegate{
+class ViewController: UIViewController{
     var weather: Weather?
     var locations: [Location] = []
     let subView = UIView();
@@ -29,13 +29,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate{
         super.viewDidLoad()
         // Do any additional setup after loading the view.
         view.backgroundColor = UIColor(red: 80/255, green: 115/255, blue: 240/255, alpha:0.72)
-
+        locationManager.delegate = self
         enableLocationServices()
-        setupConstraints();
-        
-    }
-    
-    func configureView(){
         searchTextField.placeholder = "Enter a location"
         searchTextField.backgroundColor = .red;
         searchTextField.translatesAutoresizingMaskIntoConstraints = false;
@@ -59,52 +54,17 @@ class ViewController: UIViewController, CLLocationManagerDelegate{
         searchOptionsTableView.translatesAutoresizingMaskIntoConstraints = false
         searchOptionsTableView.dataSource = self
         searchOptionsTableView.delegate = self
-        searchOptionsTableView.backgroundColor = .none
+        searchOptionsTableView.backgroundColor = .clear
         searchOptionsTableView.register(searchOptionsTableViewCell.self, forCellReuseIdentifier: reuseIdentifier)
         searchOptionsTableView.clipsToBounds = true
         searchOptionsTableView.rowHeight = 48
         searchOptionsTableView.layer.cornerRadius = searchBarContainer.layer.cornerRadius
         searchBarContainer.addSubview(searchIcon)
-        
         view.addSubview(searchBarContainer)
-        
-        locationLabel.font = .monospacedDigitSystemFont(ofSize: 45, weight: .bold)
-        locationLabel.textColor = .lightGray
-        locationLabel.translatesAutoresizingMaskIntoConstraints = false;
-        subView.addSubview(locationLabel);
-        
-        descriptionLabel.translatesAutoresizingMaskIntoConstraints = false;
-        descriptionLabel.font = .monospacedDigitSystemFont(ofSize: 18, weight: .light)
-        descriptionLabel.textColor = .lightGray
-        subView.addSubview(descriptionLabel);
-        weatherIcon.translatesAutoresizingMaskIntoConstraints = false
-        subView.addSubview(weatherIcon);
-        locationManager.delegate = self;
-        
-        temperatureLabel.text = "\(String(describing: toCelcius(degrees:weather?.temperature ?? 0))) ° C"
-        temperatureLabel.translatesAutoresizingMaskIntoConstraints  = false
-        temperatureLabel.font = .monospacedDigitSystemFont(ofSize: 36, weight: .semibold)
-        temperatureLabel.textColor = .lightGray
-        subView.addSubview(temperatureLabel)
-        
-        highLowLabel.translatesAutoresizingMaskIntoConstraints = false;
-        highLowLabel.font = .systemFont(ofSize: 20)
-        highLowLabel.textColor = .lightGray
-        subView.addSubview(highLowLabel)
-        
-        
-        timeLabel.translatesAutoresizingMaskIntoConstraints = false;
-        timeLabel.font = .systemFont(ofSize: 15)
-        timeLabel.textColor = .lightGray
-        updateTime()
-        subView.addSubview(timeLabel)
-        Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(updateTime), userInfo: nil, repeats: true)
-        
-        
         subView.translatesAutoresizingMaskIntoConstraints = false
-        
         view.addSubview(subView)
         view.addSubview(searchOptionsTableView)
+        setupConstraints();
     }
     
     func getData(from url: URL, completion: @escaping (Data?, URLResponse?, Error?) -> ()) {
@@ -147,26 +107,102 @@ class ViewController: UIViewController, CLLocationManagerDelegate{
         }
     }
     
-    func toCelcius(degrees: Double) -> Double{
+    func configureViewOnWeatherReceived(){
+        // configure location
+        locationLabel.text = weather?.locationName
+        locationLabel.font = .monospacedDigitSystemFont(ofSize: 45, weight: .bold)
+        locationLabel.textColor = .lightGray
+        locationLabel.translatesAutoresizingMaskIntoConstraints = false;
+        subView.addSubview(locationLabel);
+        
+        // configure descriptionLabel
+        descriptionLabel.translatesAutoresizingMaskIntoConstraints = false;
+        descriptionLabel.font = .monospacedDigitSystemFont(ofSize: 18, weight: .light)
+        descriptionLabel.textColor = .lightGray
+        descriptionLabel.text = weather?.description
+        subView.addSubview(descriptionLabel);
+        
+        // Configure weatherIcon
+        weatherIcon.translatesAutoresizingMaskIntoConstraints = false
+        subView.addSubview(weatherIcon);
+        
+        // Configure temperatureLabel
+        temperatureLabel.text = String(format: "%.0f", self.toFahrenheit((weather?.temperature)!)) + "°F"
+        temperatureLabel.translatesAutoresizingMaskIntoConstraints  = false
+        temperatureLabel.font = .monospacedDigitSystemFont(ofSize: 36, weight: .semibold)
+        temperatureLabel.textColor = .lightGray
+        subView.addSubview(temperatureLabel)
+        
+        // Configure highLowLabel
+        highLowLabel.translatesAutoresizingMaskIntoConstraints = false;
+        highLowLabel.font = .systemFont(ofSize: 20)
+        highLowLabel.textColor = .lightGray
+        if let weather = self.weather{
+            if let low = weather.low, let high = weather.high{
+                highLowLabel.text = "Low: \(String(format: "%.0f", self.toFahrenheit(low))) °F | High: \(String(format: "%.0f", self.toFahrenheit(high))) °F"
+            }
+        }
+        subView.addSubview(highLowLabel)
+        
+        //configure timeLabel
+        timeLabel.translatesAutoresizingMaskIntoConstraints = false;
+        timeLabel.font = .systemFont(ofSize: 15)
+        timeLabel.textColor = .lightGray
+        updateTime()
+        subView.addSubview(timeLabel)
+        Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(updateTime), userInfo: nil, repeats: true)
+        
+        setupConstraintsOnWeatherReceived()
+    }
+    
+    func toCelcius(_ degrees: Double) -> Double{
         return degrees-273.15
     }
     
     
     // returns
-    func toFahrenheit(degrees: Double) -> Double {
-        return toCelcius(degrees:degrees) * 9/5 + 32
+    func toFahrenheit(_ degrees: Double) -> Double {
+        return toCelcius(degrees) * 9/5 + 32
     }
     
     @objc func searchTextFieldDidChange(_ textField: UITextField) {
         // Show or hide the search options table view based on the text field's content
         if textField.text?.isEmpty ?? true {
             searchOptionsTableView.isHidden = true
-            searchOptionsTableView.backgroundColor = .clear
         } else {
             searchOptionsTableView.isHidden = false
-            searchOptionsTableView.backgroundColor = UIColor(red: 217/255, green: 217/255, blue: 217/255, alpha: 0.1)
         }
     }
+    
+    func handleSelection(){
+        searchTextField.text = ""
+        searchOptionsTableView.isHidden = true
+    }
+    
+    
+    func updateWeather(location:Location ) {
+        getWeather(lat: location.lat, lon: location.lon) { weather in
+            DispatchQueue.main.async {
+                if let weather = weather{
+                    self.weather = weather
+                    if let iconSrc = weather.iconSrc{
+                        self.getData(from: iconSrc){data, response, error in
+                            DispatchQueue.main.async {
+                                if let data = data, error == nil{
+                                    self.weatherIcon.image = UIImage(data: data)
+                                }
+                            }
+                        }
+                    }
+                    self.configureViewOnWeatherReceived()
+                }
+            }
+            
+        }
+    }
+    
+    
+   
     
     @objc func updateTime() {
         let dateFormatter = DateFormatter()
@@ -175,18 +211,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate{
         timeLabel.text = currentTime
     }
     
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Location manager failed with error: \(error.localizedDescription)")
-    }
     
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        if let location = locations.last{
-            updateWeather(location: convertToLocation(location: location))
-        }
-        
-    }
-    
-    func setupConstraints() {
+    func setupConstraints(){
         NSLayoutConstraint.activate([
             subView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
             subView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
@@ -218,8 +244,13 @@ class ViewController: UIViewController, CLLocationManagerDelegate{
             searchOptionsTableView.topAnchor.constraint(equalTo: searchBarContainer.bottomAnchor),
             searchOptionsTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             searchOptionsTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            searchOptionsTableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            searchOptionsTableView.heightAnchor.constraint(equalToConstant: 300)
         ])
+        
+    }
+    
+    func setupConstraintsOnWeatherReceived() {
+       
         // locationName constraints
         NSLayoutConstraint.activate([
             locationLabel.centerXAnchor.constraint(equalTo: searchBarContainer.centerXAnchor),
@@ -257,39 +288,6 @@ class ViewController: UIViewController, CLLocationManagerDelegate{
             ])
         
     }
-    func handleSelection(){
-        searchTextField.text = ""
-        searchOptionsTableView.isHidden = true
-    }
-    
-    
-    func updateWeather(location:Location ) {
-        getWeather(lat: location.lat, lon: location.lon) { weather in
-            DispatchQueue.main.async {
-                
-                if let weather = weather{
-                    self.weather = weather
-                    self.locationLabel.text = weather.locationName
-                    self.temperatureLabel.text = String(format: "%.0f", self.toFahrenheit(degrees: weather.temperature!)) + "°F"
-                    self.descriptionLabel.text = weather.description
-                    if let low = weather.low, let high = weather.high {
-                        self.highLowLabel.text = "Low: \(String(format: "%.0f", self.toFahrenheit(degrees: low))) °F | High: \(String(format: "%.0f", self.toFahrenheit(degrees: high))) °F"
-                    }
-                    
-                    if let iconSrc = weather.iconSrc{
-                        self.getData(from: iconSrc){data, response, error in
-                            DispatchQueue.main.async {
-                                if let data = data, error == nil{
-                                    self.weatherIcon.image = UIImage(data: data)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-        }
-    }
     
     
     
@@ -305,31 +303,40 @@ class ViewController: UIViewController, CLLocationManagerDelegate{
     
 }
     
+extension ViewController:CLLocationManagerDelegate{
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Location manager failed with error: \(error.localizedDescription)")
+    }
     
-    
-    
-    extension ViewController: UITableViewDelegate{
-        func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-            return UITableView.automaticDimension
-        }
-        
-        func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-            updateWeather(location: locations[indexPath.row])
-            handleSelection()
-            
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        if let location = locations.last{
+            updateWeather(location: convertToLocation(location: location))
         }
     }
+}
+    
+    
+extension ViewController: UITableViewDelegate{
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return UITableView.automaticDimension
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        updateWeather(location: locations[indexPath.row])
+        handleSelection()
+        
+    }
+}
 
 extension ViewController: UITableViewDataSource{
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         // line added to prevent index out of range error due to asynchronous work
-        if locations.count > indexPath.row{
             if let cell = tableView.dequeueReusableCell(withIdentifier: reuseIdentifier,
                                                         for: indexPath) as? searchOptionsTableViewCell{
-                cell.configure(location:locations[indexPath.row])
+                print(locations.count, indexPath.row)
+                cell.configure(location:self.locations[indexPath.row])
                 return cell
             }
-        }
         return searchOptionsTableViewCell();
     }
         
@@ -342,26 +349,35 @@ extension ViewController: UITableViewDataSource{
 extension ViewController: UITextFieldDelegate{
     func textFieldDidChangeSelection(_ textField: UITextField) {
         if searchTextField.text == ""{
+            // hide view
             searchOptionsTableView.isHidden = true;
-            searchOptionsTableView.backgroundColor = .none
+            self.locations = []
+            self.searchOptionsTableView.delegate = nil
+            self.searchOptionsTableView.delegate = self
+            self.searchOptionsTableView.reloadData()
         }else{
+            // get locations using weather api
             getLocations(text: textField.text!){ locations in
                 if let newLocations = locations{
                     self.locations = newLocations.filter{location in
+                        // only get result types that are valid
                        let validResults = ["city", "state", "suburb", "county"]
                         return validResults.contains(location.result_type)
                     }
+                    DispatchQueue.main.async{
+                        // reset the delegate to account for new locations.count
+                        self.searchOptionsTableView.delegate = nil
+                        self.searchOptionsTableView.delegate = self
+                        self.searchOptionsTableView.reloadData()
+                        self.searchOptionsTableView.isHidden = false
+                    }
                 }
             }
-                
-            searchOptionsTableView.isHidden = false;
-            searchOptionsTableView.backgroundColor = UIColor(red: 217/255, green: 217/255, blue: 217/255, alpha: 0.1)
-            searchOptionsTableView.reloadData()
-            }
         }
+    }
+    
         func textFieldShouldReturn(_ textField: UITextField) -> Bool {
             textField.resignFirstResponder() // Dismiss the keyboard
-            handleSelection()
             return true
         }
     }
