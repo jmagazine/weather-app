@@ -102,7 +102,7 @@ class searchOptionsTableViewCell: UITableViewCell {
             }
         
         if let state = location.state {
-            text += (stateNameToCode[state]) + ", "
+            text += (stateNameToCode[state] ?? "") + ", "
         }
         
         text += location.country
