@@ -67,7 +67,8 @@ class searchOptionsTableViewCell: UITableViewCell {
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         nameLabel.font = .italicSystemFont(ofSize: 20)
         nameLabel.textAlignment = .left
-        contentView.backgroundColor = UIColor(red: 80/255, green: 115/255, blue: 240/255, alpha:0.72)
+        nameLabel.textColor = .white
+        contentView.backgroundColor = .black
         contentView.addSubview(nameLabel)
         
         setupConstraints()

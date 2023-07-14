@@ -63,11 +63,9 @@ class ViewController: UIViewController{
         searchOptionsTableView.translatesAutoresizingMaskIntoConstraints = false
         searchOptionsTableView.dataSource = self
         searchOptionsTableView.delegate = self
-        searchOptionsTableView.backgroundColor = .clear
+        searchOptionsTableView.backgroundColor = .none
         searchOptionsTableView.register(searchOptionsTableViewCell.self, forCellReuseIdentifier: reuseIdentifier)
         searchOptionsTableView.clipsToBounds = true
-        searchOptionsTableView.rowHeight = 48
-        searchOptionsTableView.layer.cornerRadius = searchBarContainer.layer.cornerRadius
         searchBarContainer.addSubview(searchIcon)
         view.addSubview(searchBarContainer)
         
